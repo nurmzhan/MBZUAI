@@ -1,8 +1,10 @@
-import { Bricolage_Grotesque, Newsreader } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Newsreader } from "next/font/google";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+// Fraunces sets the name and the headings, Newsreader sets the
+// prose and every italic, Bricolage Grotesque sets the chrome.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
   display: "swap",
 });
@@ -14,16 +16,25 @@ const newsreader = Newsreader({
   display: "swap",
 });
 
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const BLURB =
+  "Foundation Year student at Nazarbayev University and a member of its Student Council. " +
+  "Altyn Belgi graduate of Gymnasium 27 in Almaty, SAT 1530, applying to MBZUAI for the " +
+  "BSc in Artificial Intelligence (Business).";
+
 export const metadata = {
   // Set this to your real deployed URL so social previews resolve the image:
   // metadataBase: new URL("https://your-domain.com"),
-  title: "Nurymzhan Baktygali — Almaty, Kazakhstan",
-  description:
-    "Final-year student at Gymnasium 27 in Almaty, applying to MBZUAI for the BSc in Artificial Intelligence (Business). School president, web developer, volunteer tutor.",
+  title: "Nurymzhan Baktygali — Astana and Almaty, Kazakhstan",
+  description: BLURB,
   openGraph: {
     title: "Nurymzhan Baktygali",
-    description:
-      "Final-year student in Almaty applying to MBZUAI for the BSc in Artificial Intelligence (Business).",
+    description: BLURB,
     type: "profile",
     locale: "en_US",
     images: ["/profile-photo.jpg"],
@@ -31,8 +42,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Nurymzhan Baktygali",
-    description:
-      "Final-year student in Almaty applying to MBZUAI for the BSc in Artificial Intelligence (Business).",
+    description: BLURB,
     images: ["/profile-photo.jpg"],
   },
 };
@@ -45,7 +55,9 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${bricolage.variable} ${newsreader.variable}`}>
+      <body
+        className={`${fraunces.variable} ${newsreader.variable} ${bricolage.variable}`}
+      >
         {children}
       </body>
     </html>
