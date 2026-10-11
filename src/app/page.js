@@ -593,7 +593,7 @@ export default function Home() {
                   <dt>Programme</dt>
                   <dd>The university’s pre-undergraduate year: academic English, mathematics and sciences taught in English.</dd>
                   <dt>Alongside it</dt>
-                  <dd>Elected to the Student Council in my first term.</dd>
+                  <dd>Elected to the Student Council.</dd>
                 </dl>
               </div>
               <div className="block">
