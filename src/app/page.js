@@ -550,7 +550,6 @@ export default function Home() {
         <section className="section" id="results">
           <div className="shell">
             <SectionHead num="01" kicker="Results" title="The numbers, in full">
-              <p>Every score here is the real one. Where a figure is usually inflated, I have said so.</p>
             </SectionHead>
 
             <ul className="scores">
