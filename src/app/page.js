@@ -19,7 +19,7 @@ const SECTIONS = [
 ]
 
 const RESULTS = [
-  { name: 'SAT', value: 1530, out: 1600, note: 'One sitting — this is not a superscore' },
+  { name: 'SAT', value: 1530, out: 1600, note: 'August 2026' },
   { name: 'GPA', value: 5, decimals: 1, out: '5.0', note: 'Gymnasium 27 — top mark in every subject' },
   { name: 'IELTS', value: 7.5, decimals: 1, out: 9, note: 'Academic' },
   { name: 'UNT', value: 122, out: 140, note: 'Unified National Testing, Kazakhstan' },
