@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, Fragment } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'react'
+import { motion, useReducedMotion, useScroll } from 'framer-motion'
 
 /* ────────────────────────────────────────────────────────────
    Content. Everything the page says lives here, so the markup
@@ -9,34 +9,50 @@ import { motion, useReducedMotion } from 'framer-motion'
    ──────────────────────────────────────────────────────────── */
 
 const SECTIONS = [
-  { id: 'results', label: 'Results' },
-  { id: 'education', label: 'Education' },
-  { id: 'experience', label: 'Experience' },
-  { id: 'awards', label: 'Awards' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'hobbies', label: 'Away from school' },
-  { id: 'contact', label: 'Contact' },
+  { id: 'results', num: '01', label: 'Results' },
+  { id: 'education', num: '02', label: 'Education' },
+  { id: 'experience', num: '03', label: 'Experience' },
+  { id: 'awards', num: '04', label: 'Awards' },
+  { id: 'skills', num: '05', label: 'Skills' },
+  { id: 'hobbies', num: '06', label: 'Away from school' },
+  { id: 'contact', num: '07', label: 'Contact' },
 ]
 
 const RESULTS = [
-  { name: 'GPA', score: '5.0 / 5.0', note: 'Gymnasium 27, diploma with distinction expected June 2026' },
-  { name: 'SAT', score: '1500', note: 'superscore' },
-  { name: 'IELTS', score: '7.5', note: 'Academic' },
-  { name: 'UNT', score: '122 / 140', note: 'Unified National Testing, Kazakhstan' },
+  { name: 'SAT', value: 1530, out: 1600, note: 'One sitting — this is not a superscore' },
+  { name: 'GPA', value: 5, decimals: 1, out: '5.0', note: 'Gymnasium 27 — top mark in every subject' },
+  { name: 'IELTS', value: 7.5, decimals: 1, out: 9, note: 'Academic' },
+  { name: 'UNT', value: 122, out: 140, note: 'Unified National Testing, Kazakhstan' },
+]
+
+const FILTERS = [
+  { id: 'all', label: 'Everything' },
+  { id: 'lead', label: 'Leadership' },
+  { id: 'build', label: 'Building' },
+  { id: 'teach', label: 'Teaching' },
 ]
 
 const EXPERIENCE = [
   {
-    year: '2025', start: 'Sep 2025', end: 'now', kind: 'role',
-    role: 'School President', org: 'Gymnasium 27, Almaty',
+    year: '2026', start: 'Aug 2026', end: 'now', kind: 'role', tags: ['lead'],
+    role: 'Student Council', org: 'Nazarbayev University, Astana',
     points: [
-      'Run student forums that collect feedback on teaching, school life and wellbeing',
-      'Work with the administration on exam support sessions and facility repairs',
-      'Organise school-wide events, and set up formats that let other students run their own projects',
+      'Represent Foundation-year students on the university Student Council',
+      'Carrying over the method that worked at school: open feedback sessions first, written proposals second',
+      'Helping run council events for a cohort that has just arrived in a new city',
     ],
   },
   {
-    year: '2025', start: 'Jul 2025', end: 'Jan 2026', kind: 'role',
+    year: '2025', start: 'Sep 2025', end: 'Jun 2026', kind: 'role', tags: ['lead'],
+    role: 'School President', org: 'Gymnasium 27, Almaty',
+    points: [
+      'Ran student forums that collected feedback on teaching, school life and wellbeing',
+      'Worked with the administration on exam support sessions and facility repairs',
+      'Organised school-wide events, and set up formats that let other students run their own projects',
+    ],
+  },
+  {
+    year: '2025', start: 'Jul 2025', end: 'Jan 2026', kind: 'role', tags: ['build'],
     role: 'Website Developer', org: 'Russell ISC',
     points: [
       'Built and launched websites for academic programmes and events',
@@ -45,7 +61,7 @@ const EXPERIENCE = [
     ],
   },
   {
-    year: '2025', start: 'Jan 2025', end: 'Mar 2025', kind: 'volunteer',
+    year: '2025', start: 'Jan 2025', end: 'Mar 2025', kind: 'volunteer', tags: ['teach'],
     role: 'Online English Tutor', org: 'Volunteer — two students, Abay region',
     points: [
       'Taught two students from a rural school, free of charge',
@@ -54,7 +70,7 @@ const EXPERIENCE = [
     ],
   },
   {
-    year: '2024', start: 'Dec 2024', end: 'May 2025', kind: 'volunteer',
+    year: '2024', start: 'Dec 2024', end: 'May 2025', kind: 'volunteer', tags: ['teach', 'lead'],
     role: 'Curator, Kazakh Language Club TIL', org: 'Volunteer — mentoring and tutoring',
     points: [
       'Taught supplementary classes for junior students',
@@ -63,7 +79,7 @@ const EXPERIENCE = [
     ],
   },
   {
-    year: '2024', start: 'Jun 2024', end: 'Aug 2024', kind: 'role',
+    year: '2024', start: 'Jun 2024', end: 'Aug 2024', kind: 'role', tags: ['build'],
     role: 'Website Developer', org: 'Narxoz University Finance Club',
     points: [
       'Rebuilt the site structure and made it work properly on phones',
@@ -72,7 +88,7 @@ const EXPERIENCE = [
     ],
   },
   {
-    year: '2023', start: 'Sep 2023', end: 'Jun 2025', kind: 'role',
+    year: '2023', start: 'Sep 2023', end: 'Jun 2025', kind: 'role', tags: ['lead'],
     role: 'Leader, School Parliamentary Faction', org: 'Gymnasium 27, Almaty',
     points: [
       'Gathered student opinion through surveys and open meetings',
@@ -83,6 +99,7 @@ const EXPERIENCE = [
 ]
 
 const AWARDS = [
+  { rank: 'Altyn Belgi', what: 'Kazakhstan’s state “gold badge” for graduating school at the top mark in every subject' },
   { rank: '1st place', what: 'National Mathematics Competition “Kangaroo”' },
   { rank: '2nd place', what: 'District Mathematics Olympiad, grade 10' },
   { rank: '3rd place', what: 'District Mathematics Olympiad, grade 11' },
@@ -108,11 +125,112 @@ const CORE_SKILLS = [
 ]
 
 /* ────────────────────────────────────────────────────────────
+   Small shared hooks
+   ──────────────────────────────────────────────────────────── */
+
+// True once the element has been scrolled into view, and stays
+// true afterwards. If there is no IntersectionObserver we say
+// yes immediately, so nothing can get stuck hidden or at zero.
+function useSeen(ref) {
+  const [seen, setSeen] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') { setSeen(true); return }
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setSeen(true); io.disconnect() } },
+      { rootMargin: '0px 0px -15% 0px', threshold: 0.25 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref])
+  return seen
+}
+
+function useActiveSection(ids) {
+  const [active, setActive] = useState(ids[0])
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return
+    const seen = new Map()
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => seen.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0))
+        let best = null, bestRatio = 0
+        seen.forEach((ratio, id) => { if (ratio > bestRatio) { bestRatio = ratio; best = id } })
+        if (best) setActive(best)
+      },
+      { rootMargin: '-15% 0px -65% 0px', threshold: [0, 0.2, 0.6, 1] }
+    )
+    ids.forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) io.observe(el)
+    })
+    return () => io.disconnect()
+  }, [ids])
+  return active
+}
+
+/* ────────────────────────────────────────────────────────────
+   Scores. The real number is in the markup from the first
+   render, so the page is correct before any JavaScript runs;
+   the count-up only starts once the figure scrolls into view.
+   ──────────────────────────────────────────────────────────── */
+
+function Odometer({ value, decimals = 0 }) {
+  const reduce = useReducedMotion()
+  const ref = useRef(null)
+  const seen = useSeen(ref)
+  const [shown, setShown] = useState(value)
+
+  useEffect(() => {
+    if (reduce || !seen) return
+    let raf = 0
+    const start = performance.now()
+    const step = (now) => {
+      const p = Math.min(1, (now - start) / 850)
+      setShown(value * (1 - Math.pow(1 - p, 3)))
+      if (p < 1) raf = requestAnimationFrame(step)
+      else setShown(value)
+    }
+    setShown(0)
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [seen, value, reduce])
+
+  return <span ref={ref}>{shown.toFixed(decimals)}</span>
+}
+
+function LocalClock() {
+  const [now, setNow] = useState(null)
+  useEffect(() => {
+    const read = () => {
+      try {
+        setNow(new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Almaty', hour: '2-digit', minute: '2-digit', hour12: false,
+        }).format(new Date()))
+      } catch { /* no Intl time zones — just leave it out */ }
+    }
+    read()
+    const id = setInterval(read, 20000)
+    return () => clearInterval(id)
+  }, [])
+  if (!now) return null
+  return (
+    <span className="hero-place">
+      <span className="clock-dot" aria-hidden="true" />
+      {now} in Astana, where I am now
+    </span>
+  )
+}
+
+/* ────────────────────────────────────────────────────────────
    Sudoku. Nurymzhan is in the top 1% worldwide, so the grid is
    a real puzzle rather than a decoration: the base solution is
    reshuffled by band, stack, transpose and symbol relabelling,
    and the board is checked against the rules of sudoku rather
    than against one stored answer — so any valid solution wins.
+   The clock starts on your first digit, and your best time is
+   kept in your own browser.
    ──────────────────────────────────────────────────────────── */
 
 const BASE_SOLUTION =
@@ -121,6 +239,7 @@ const BASE_SOLUTION =
   '729318654' + '813465792' + '465729831'
 
 const CLUE_COUNT = 34
+const BEST_KEY = 'nb-sudoku-best-v1'
 
 function shuffled(list) {
   const a = [...list]
@@ -183,20 +302,46 @@ function findConflicts(cells) {
   return bad
 }
 
+function clock(seconds) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 function SudokuGame() {
   const [givens, setGivens] = useState(null)
   const [entries, setEntries] = useState(() => Array(81).fill(0))
+  const [startedAt, setStartedAt] = useState(null)
+  const [elapsed, setElapsed] = useState(0)
+  const [finished, setFinished] = useState(null)
+  const [best, setBest] = useState(null)
 
   const deal = useCallback(() => {
     const solution = makeSolution()
     const revealed = new Set(shuffled(Array.from({ length: 81 }, (_, i) => i)).slice(0, CLUE_COUNT))
     setGivens(solution.map((v, i) => (revealed.has(i) ? v : 0)))
     setEntries(Array(81).fill(0))
+    setStartedAt(null)
+    setElapsed(0)
+    setFinished(null)
   }, [])
 
   // Deal on the client only, so the server and the first client
   // render agree and React does not report a hydration mismatch.
   useEffect(() => { deal() }, [deal])
+
+  useEffect(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(BEST_KEY))
+      if (saved > 0) setBest(saved)
+    } catch { /* private browsing, or storage blocked */ }
+  }, [])
+
+  useEffect(() => {
+    if (startedAt == null || finished != null) return
+    const id = setInterval(() => setElapsed(Math.round((Date.now() - startedAt) / 1000)), 500)
+    return () => clearInterval(id)
+  }, [startedAt, finished])
 
   const cells = useMemo(
     () => (givens ? givens.map((g, i) => (g || entries[i])) : Array(81).fill(0)),
@@ -206,8 +351,19 @@ function SudokuGame() {
   const filled = cells.filter(Boolean).length
   const solved = filled === 81 && conflicts.size === 0
 
+  useEffect(() => {
+    if (!solved || finished != null) return
+    const secs = startedAt == null ? 0 : Math.round((Date.now() - startedAt) / 1000)
+    setFinished(secs)
+    if (best == null || secs < best) {
+      setBest(secs)
+      try { window.localStorage.setItem(BEST_KEY, String(secs)) } catch { /* ignore */ }
+    }
+  }, [solved, finished, startedAt, best])
+
   const setCell = (i, raw) => {
     const digit = raw.replace(/[^1-9]/g, '').slice(-1)
+    if (digit && startedAt == null && finished == null) setStartedAt(Date.now())
     setEntries((prev) => {
       const next = [...prev]
       next[i] = digit ? Number(digit) : 0
@@ -215,14 +371,23 @@ function SudokuGame() {
     })
   }
 
-  const status = solved
-    ? 'Solved.'
+  const status = finished != null
+    ? `Solved in ${clock(finished)}.`
     : conflicts.size
       ? `${conflicts.size} cells conflict — a digit repeats in a row, column or box.`
       : `${81 - filled} squares left.`
 
   return (
     <div className="sudoku-wrap">
+      <div className="sudoku-clock">
+        <span className="sudoku-time" data-running={startedAt != null && finished == null}>
+          {clock(finished != null ? finished : elapsed)}
+        </span>
+        <span className="sudoku-best">
+          {best != null ? `your best ${clock(best)}` : 'the clock starts on your first digit'}
+        </span>
+      </div>
+
       <table className="sudoku">
         <caption className="sr-only">Sudoku puzzle, 9 by 9. Type a digit from 1 to 9 into an empty square.</caption>
         <tbody>
@@ -275,34 +440,23 @@ function SudokuGame() {
    Page
    ──────────────────────────────────────────────────────────── */
 
-function useActiveSection(ids) {
-  const [active, setActive] = useState(ids[0])
-  useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return
-    const seen = new Map()
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => seen.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0))
-        let best = null, bestRatio = 0
-        seen.forEach((ratio, id) => { if (ratio > bestRatio) { bestRatio = ratio; best = id } })
-        if (best) setActive(best)
-      },
-      { rootMargin: '-15% 0px -65% 0px', threshold: [0, 0.2, 0.6, 1] }
-    )
-    ids.forEach((id) => {
-      const el = document.getElementById(id)
-      if (el) io.observe(el)
-    })
-    return () => io.disconnect()
-  }, [ids])
-  return active
+function SectionHead({ num, kicker, title, children }) {
+  return (
+    <div className="section-head">
+      <p className="kicker"><span className="kicker-num">{num}</span>{kicker}</p>
+      <h2>{title}</h2>
+      {children}
+    </div>
+  )
 }
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [filter, setFilter] = useState('all')
   const reduce = useReducedMotion()
   const ids = useMemo(() => SECTIONS.map((s) => s.id), [])
   const active = useActiveSection(ids)
+  const { scrollYProgress } = useScroll()
 
   // The only motion on this page that nobody asked for: the
   // masthead settling once on load. Everything else waits for you.
@@ -315,11 +469,20 @@ export default function Home() {
           transition: { duration: 0.5, delay, ease: [0.22, 0.61, 0.36, 1] },
         }
 
+  const shown = useMemo(
+    () => (filter === 'all' ? EXPERIENCE : EXPERIENCE.filter((e) => e.tags.includes(filter))),
+    [filter]
+  )
+
   let lastYear = null
 
   return (
     <>
       <a className="skip-link" href="#main">Skip to content</a>
+
+      {!reduce && (
+        <motion.div className="progress" style={{ scaleX: scrollYProgress }} aria-hidden="true" />
+      )}
 
       <header className="topbar">
         <div className="topbar-in">
@@ -360,9 +523,10 @@ export default function Home() {
               </motion.h1>
 
               <motion.p className="hero-intro" {...enter(0.12)}>
-                I am in my final year at Gymnasium 27 in Almaty, applying to MBZUAI for the
-                BSc in Artificial Intelligence (Business). I run our student government,
-                build websites, and teach English to students in rural Kazakhstan.
+                I finished Gymnasium 27 in Almaty with <em>Altyn Belgi</em>, Kazakhstan’s state
+                gold certificate, and I am now in the Foundation Year at Nazarbayev University
+                in Astana, where I sit on the Student Council. I am applying to MBZUAI for the
+                BSc in Artificial Intelligence (Business).
               </motion.p>
 
               <motion.div className="hero-meta" {...enter(0.22)}>
@@ -372,7 +536,7 @@ export default function Home() {
                 <a className="btn btn-ghost" href="mailto:baktygali.nurymzhan@gmail.com">
                   Email me
                 </a>
-                <span className="hero-place">Almaty, Kazakhstan</span>
+                <LocalClock />
               </motion.div>
             </div>
 
@@ -385,41 +549,61 @@ export default function Home() {
 
         <section className="section" id="results">
           <div className="shell">
-            <div className="section-head"><h2>Results</h2></div>
-            <table className="results">
-              <caption>Standardised tests and school record.</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Test</th>
-                  <th scope="col">Score</th>
-                  <th scope="col" className="note">Detail</th>
-                </tr>
-              </thead>
-              <tbody>
-                {RESULTS.map((r) => (
-                  <tr key={r.name}>
-                    <th scope="row">{r.name}</th>
-                    <td className="score">{r.score}</td>
-                    <td className="note">{r.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SectionHead num="01" kicker="Results" title="The numbers, in full">
+              <p>Every score here is the real one. Where a figure is usually inflated, I have said so.</p>
+            </SectionHead>
+
+            <ul className="scores">
+              {RESULTS.map((r) => (
+                <li key={r.name} className="score-card">
+                  <p className="score-label">{r.name}</p>
+                  <p className="score-value" aria-hidden="true">
+                    <span className="score-num"><Odometer value={r.value} decimals={r.decimals || 0} /></span>
+                    <span className="score-out">/ {r.out}</span>
+                  </p>
+                  <span className="sr-only">{r.name}: {r.decimals ? r.value.toFixed(r.decimals) : r.value} out of {r.out}.</span>
+                  <p className="score-note">{r.note}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="honour">
+              <p className="honour-kicker">State award — Republic of Kazakhstan</p>
+              <h3 className="honour-title">
+                Altyn Belgi <span className="cyr" lang="kk">Алтын белгі</span>
+              </h3>
+              <p className="honour-body">
+                The national “gold badge”, given to school leavers who finish with the top mark
+                in every subject across their final years. Mine came with a 5.0 out of 5.0
+                record at Gymnasium 27 — it is the one line on this page that cannot be
+                partially earned.
+              </p>
+            </div>
           </div>
         </section>
 
         <section className="section" id="education">
           <div className="shell">
-            <div className="section-head"><h2>Education</h2></div>
-            <div className="cols">
+            <SectionHead num="02" kicker="Education" title="Where I have studied" />
+            <div className="cols three">
+              <div className="block block-now">
+                <h3>Nazarbayev University</h3>
+                <p className="block-sub">Foundation Year, Astana — current</p>
+                <dl>
+                  <dt>Programme</dt>
+                  <dd>The university’s pre-undergraduate year: academic English, mathematics and sciences taught in English.</dd>
+                  <dt>Alongside it</dt>
+                  <dd>Elected to the Student Council in my first term.</dd>
+                </dl>
+              </div>
               <div className="block">
                 <h3>Gymnasium 27</h3>
-                <p className="block-sub">Almaty, Kazakhstan — expected June 2026</p>
+                <p className="block-sub">Almaty, Kazakhstan — graduated 2026</p>
                 <dl>
                   <dt>Programme</dt>
                   <dd>Trilingual academic track, with advanced coursework in mathematics, physics and geography.</dd>
-                  <dt>Standing</dt>
-                  <dd>Diploma with distinction expected; GPA 5.0 out of 5.0.</dd>
+                  <dt>Leaving record</dt>
+                  <dd>GPA 5.0 out of 5.0, diploma with distinction, and <em>Altyn Belgi</em>.</dd>
                 </dl>
               </div>
               <div className="block">
@@ -438,22 +622,39 @@ export default function Home() {
 
         <section className="section" id="experience">
           <div className="shell">
-            <div className="section-head">
-              <h2>Experience</h2>
+            <SectionHead num="03" kicker="Experience" title="What I have actually done">
               <p>
                 Paid work and volunteering, newest first. I have not had a gap since
-                September 2023, and several of these overlap.
+                September 2023, and several of these overlap. Filter it if you are
+                only here for one kind of thing.
               </p>
+            </SectionHead>
+
+            <div className="chips" role="group" aria-label="Filter experience">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="chip"
+                  aria-pressed={filter === f.id}
+                  onClick={() => setFilter(f.id)}
+                >
+                  {f.label}
+                  <span className="chip-count">
+                    {f.id === 'all' ? EXPERIENCE.length : EXPERIENCE.filter((e) => e.tags.includes(f.id)).length}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            <ol className="timeline">
-              {EXPERIENCE.map((item, i) => {
+            <ol className="timeline" key={filter}>
+              {shown.map((item, i) => {
                 const showYear = item.year !== lastYear
                 lastYear = item.year
                 return (
                   <Fragment key={i}>
                   {showYear && <li className="tl-year" aria-hidden="true">{item.year}</li>}
-                  <li className="tl-item" data-kind={item.kind}>
+                  <li className="tl-item" data-kind={item.kind} style={{ '--i': i }}>
                     <div className="tl-when">{item.start} — {item.end}</div>
                     <h3 className="tl-role">{item.role}</h3>
                     <p className="tl-org">{item.org}</p>
@@ -473,7 +674,7 @@ export default function Home() {
 
         <section className="section" id="awards">
           <div className="shell">
-            <div className="section-head"><h2>Awards</h2></div>
+            <SectionHead num="04" kicker="Awards" title="Competitions and honours" />
             <ul className="awards">
               {AWARDS.map((a) => (
                 <li key={a.rank + a.what}>
@@ -487,7 +688,7 @@ export default function Home() {
 
         <section className="section" id="skills">
           <div className="shell">
-            <div className="section-head"><h2>Skills</h2></div>
+            <SectionHead num="05" kicker="Skills" title="What I bring to a room" />
             <div className="cols">
               <div className="block">
                 <h3>Technical</h3>
@@ -505,14 +706,12 @@ export default function Home() {
 
         <section className="section" id="hobbies">
           <div className="shell">
-            <div className="section-head">
-              <h2>Away from school</h2>
+            <SectionHead num="06" kicker="Away from school" title="Four things not on a transcript">
               <p>
-                Four things I do that are not on a transcript. Three of them are about
-                getting a movement exactly right; the fourth is about getting a number
-                exactly right.
+                Three of them are about getting a movement exactly right. The fourth is
+                about getting a number exactly right — and you can play that one.
               </p>
-            </div>
+            </SectionHead>
 
             <div className="hobby">
               <div className="hobby-head">
@@ -584,13 +783,13 @@ export default function Home() {
             <div className="hobby">
               <div className="hobby-head">
                 <h3>Sudoku</h3>
-                <span className="hobby-note">Top 1% worldwide — have a go</span>
+                <span className="hobby-note">Top 1% worldwide — try to beat the clock</span>
               </div>
               <SudokuGame />
               <p>
-                This is a real puzzle, reshuffled every time you press the button, and it is
-                checked against the rules rather than against one stored answer — so any
-                valid solution counts.
+                A real puzzle, reshuffled every time you press the button, checked against the
+                rules rather than against one stored answer — so any valid solution counts.
+                Your best time stays in your own browser; nothing is sent anywhere.
               </p>
             </div>
           </div>
@@ -598,13 +797,13 @@ export default function Home() {
 
         <section className="section" id="contact">
           <div className="shell">
-            <div className="section-head"><h2>Get in touch</h2></div>
+            <SectionHead num="07" kicker="Contact" title="Get in touch" />
             <div className="contact-grid">
               <div className="prose">
                 <p>
-                  I am applying to MBZUAI for the BSc in Artificial Intelligence (Business),
-                  starting in 2026. If you are reading this as part of an application, the CV
-                  at the top has the same record in one page.
+                  I am applying to MBZUAI for the BSc in Artificial Intelligence (Business).
+                  If you are reading this as part of an application, the CV at the top has the
+                  same record in one page.
                 </p>
                 <p>
                   I also answer messages about web work, tutoring, and anything to do with
@@ -628,7 +827,7 @@ export default function Home() {
                 </li>
                 <li>
                   <span className="label">Based in</span>
-                  <span className="value">Almaty, Kazakhstan</span>
+                  <span className="value">Astana during term · Almaty at home</span>
                 </li>
                 <li>
                   <span className="label">Languages</span>
@@ -642,7 +841,7 @@ export default function Home() {
 
       <footer className="site-foot">
         <div className="shell">
-          <p>© 2026 Nurymzhan Baktygali — Almaty, Kazakhstan.</p>
+          <p>© 2026 Nurymzhan Baktygali — Astana and Almaty, Kazakhstan.</p>
         </div>
       </footer>
     </>
